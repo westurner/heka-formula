@@ -11,10 +11,10 @@ heka:
 
 /etc/heka/hekad.toml:
   file.managed:
-    - name: {{ heka.heka_config }}
+    - name: {{ heka.config }}
     - makedirs: True
-    - template: jinja
-    - source: {{ heka.heka_config_src }}
+    - template: {{ heka.config_src_template }}
+    - source: {{ heka.config_src }}
     - user: root
     - group: root
     - mode: 0644

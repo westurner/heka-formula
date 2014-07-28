@@ -1,3 +1,4 @@
-heka::
+heka:
   lookup:
-    master: heka-master
+    config_src: salt://heka/templates/hekad.toml.jinja
+    config_src_template: jinja
