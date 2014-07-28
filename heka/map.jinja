@@ -1,0 +1,10 @@
+{% set heka = salt['grains.filter_by']({
+    'Debian': {
+        'pkgsrc_amd64': 'salt://heka/files/heka_0.6.0_amd64.deb',
+        'pkgsrc_i386': 'salt://heka/files/heka_0.6.0_i386.deb',
+        'server': 'hekad',
+        'service': 'hekad',
+        'heka_config': '/etc/heka/hekad.toml',
+        'heka_config_src': 'salt://heka/templates/hekad.toml.jinja'
+    },
+}, merge=salt['pillar.get']('heka:lookup')) %}

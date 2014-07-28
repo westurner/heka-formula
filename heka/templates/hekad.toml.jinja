@@ -1,0 +1,92 @@
+# {{ pillar.get('message_do_not_modify', '') }}
+# Hekad configuration file
+{#
+src: http://hekad.readthedocs.org/en/latest/config/index.html
+src: 
+#}
+
+{%- set heka = pillar.get('heka', {}) %}
+[hekad]
+decoder_poolsize = 10
+max_message_loops = 4
+max_process_inject = 10
+max_timer_inject  = 10
+#TODO
+maxprocs = 10
+plugin_chansize = 10
+poolsize = 100
+#base_dir = "/var/cache/hekad"
+#share_dir = "/usr/share/heka"
+{%- if heka.get('debug') %}
+memprof = "/var/log/hekad/memprof.log"
+cpuprof = "/var/log/hekad/cpuprofile.log"
+{%- endif %}
+
+{%- if heka.get('recv_protobuf') %}
+# Listens for Heka messages on TCP port 5565.
+[ProtobufTcpInput]
+type = "TcpInput"
+address = ":{{ heka.get('recv_protobuf') }}"
+parser_type = "message.proto"
+decoder = "ProtobufDecoder"
+{%- endif %}
+
+{% if heka.get('recv_rsyslog', True) %}
+## rsyslog
+#[RsyslogUdpInput]
+#type = "UdpInput"
+#parser_type = "regexp"
+#delimiter = "$"
+#address = ":5559"
+#decoder = "RsyslogDecoder"
+
+[RsyslogTcpInput]
+type = "TcpInput"
+parser_type = "token"
+address = ":5560"
+decoder = "RsyslogDecoder"
+
+[RsyslogDecoder]
+type = "SandboxDecoder"
+script_type = "lua"
+filename = "lua_decoders/rsyslog.lua"
+
+[RsyslogDecoder.config]
+template = '<%PRI%>%TIMESTAMP% %HOSTNAME% %syslogtag:1:32%%msg:::sp-if-no-1st-sp%%msg%'
+tz = "America/Chicago"
+{%- endif %}
+
+{%- if heka.get('output_debug', True) %}
+# Writes output from `CounterFilter`, `lua_sandbox`, and Heka's internal
+# reports to stdout.
+[debug]
+type = "LogOutput"
+message_matcher = "Type == 'heka.counter-output' || Type == 'heka.all-report' || Type == 'heka.sandbox-output'"
+
+# Counts throughput of messages sent from a Heka load testing tool.
+[CounterFilter]
+message_matcher = "Type == 'hekabench' && EnvVersion == '0.8'"
+ticker_interval = 1
+
+{#
+# Defines a sandboxed filter that will be written in Lua.
+[lua_sandbox]
+type = "SandboxFilter"
+message_matcher = "Type == 'hekabench' && EnvVersion == '0.8'"
+ticker_interval = 1
+script_type = "lua"
+preserve_data = true
+filename = "lua_filters/sandbox.lua" #}
+{%- endif %}
+
+
+{%- if heka.get('output_dashboard') %}
+[Dashboard]
+type = "DashboardOutput"
+address = ":4352"
+ticker_interval = 10
+working_directory = "dashboard" # TODO
+static_directory = "/work/git/heka/dasher" # TODO
+{%- endif %}
+
+{# TODO: http://hekad.readthedocs.org/en/latest/config/index.html#configuring-restarting-behavior  #}
